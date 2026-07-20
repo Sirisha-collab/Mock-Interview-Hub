@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: #f6f5f1;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(15, 23, 32, 0.05) 1px, transparent 0);
+  background-size: 22px 22px;
+  color: #151f2b;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cdd3d9 transparent;
+}
+
+:focus-visible {
+  outline: 2px solid #3ddc97;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.eyebrow {
+  font-family: "IBM Plex Mono", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+
+/* Recording pulse used on the Practice page while the mic is live */
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(229, 100, 107, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 18px rgba(229, 100, 107, 0);
+  }
+}
+
+.recording-pulse {
+  animation: pulse-ring 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes bar-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.mic-bar {
+  animation: bar-bounce 0.9s ease-in-out infinite;
+  transform-origin: center;
+}
