@@ -1,8 +1,6 @@
-<<<<<<< HEAD
+
 # Mock-Interview-Hub
 Every great career begins with a confident conversation. Practice interviews with an AI coach that helps you think clearly, answer confidently, and grow with every session.
-=======
-# Interview Practice Studio
 
 A fully offline Interview Practice Application:
 
@@ -223,16 +221,5 @@ ever need to change that).
 | CORS errors in the browser console | You're running the frontend on a port other than 5173. Either use the default port, or add your dev URL to the `allow_origins` list in `backend/app/main.py`. |
 | Port 8000 or 5173 already in use | Stop whatever else is using that port, or run `uvicorn app.main:app --reload --port 8001` (and update `API_BASE_URL` in `frontend/src/api/client.js` to match). |
 
----
-
-## 9. Notes on data & privacy
-
-- All data (questions, transcripts, statistics) lives in a local SQLite file
-  at `backend/interview_practice.db`. Nothing is sent anywhere except between
-  your browser and your own machine's backend.
-- Speech-to-text runs fully offline via Vosk — no audio or text ever leaves
-  your computer.
-- To reset the app completely, stop the backend and delete
-  `backend/interview_practice.db`; a fresh one will be created the next time
   you start the server.
 >>>>>>> dbb6c6d (Initial commit)
