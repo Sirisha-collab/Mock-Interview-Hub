@@ -63,10 +63,25 @@ export default function Practice() {
     setMicError("");
     setTranscript("");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Improving Audio to text conversion
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
       streamRef.current = stream;
       const mimeType = pickMimeType();
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+
+      //Adding audioBitsPerSecond for better audio quality
+      const recorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType, audioBitsPerSecond: 128000 } : undefined
+      );
       chunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
@@ -206,11 +221,10 @@ export default function Practice() {
             <button
               onClick={micStatus === "recording" ? stopRecording : startRecording}
               disabled={micStatus === "processing"}
-              className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-colors ${
-                micStatus === "recording"
-                  ? "bg-rose text-white recording-pulse"
-                  : "bg-signal text-ink-950 hover:bg-signal-dim"
-              } disabled:opacity-60`}
+              className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-colors ${micStatus === "recording"
+                ? "bg-rose text-white recording-pulse"
+                : "bg-signal text-ink-950 hover:bg-signal-dim"
+                } disabled:opacity-60`}
               aria-label={micStatus === "recording" ? "Stop recording" : "Start recording"}
             >
               {micStatus === "recording" ? (
@@ -224,8 +238,8 @@ export default function Practice() {
               {micStatus === "recording"
                 ? formatTime(elapsedSeconds)
                 : micStatus === "processing"
-                ? "Transcribing…"
-                : "Tap to record"}
+                  ? "Transcribing…"
+                  : "Tap to record"}
             </p>
 
             {micStatus === "recording" && (
