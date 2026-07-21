@@ -56,6 +56,7 @@ def _convert_to_wav(input_path: str) -> str:
     audio = AudioSegment.from_file(input_path)
     audio = audio.set_channels(1).set_frame_rate(16000).set_sample_width(2)
 
+    audio = audio.normalize() # added to convert audio to text properly
     wav_fd, wav_path = tempfile.mkstemp(suffix=".wav")
     os.close(wav_fd)
     audio.export(wav_path, format="wav")
