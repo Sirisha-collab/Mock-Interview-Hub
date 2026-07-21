@@ -11,6 +11,8 @@ import {
   deleteQuestion,
 } from "../api/client.js";
 
+const categories = ["NLP", "LLM", "DL", "ML"];
+
 const CATEGORY_COLORS = [
   "bg-signal-soft text-signal-dim",
   "bg-amber-soft text-amber",
@@ -24,9 +26,128 @@ function categoryColor(category) {
   return CATEGORY_COLORS[Math.abs(hash) % CATEGORY_COLORS.length];
 }
 
+//Bulk Upload
+function BulkUploadForm({ onCancel, onSaved }) {
+  const [text, setText] = useState("");
+  const [category, setCategory] = useState(categories[0]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [results, setResults] = useState(null); // { total, created, skipped }
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!text.trim()) {
+      setError("Please paste at least one question.");
+      return;
+    }
+
+    const lines = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    if (lines.length === 0) {
+      setError("No valid questions found. Make sure each question is on a separate line.");
+      return;
+    }
+
+    setUploading(true);
+    setError("");
+    let created = 0;
+    let skipped = 0;
+
+    for (const questionText of lines) {
+      try {
+        await createQuestion({ text: questionText, category });
+        created++;
+      } catch (err) {
+        console.error(`Failed to create question: ${err.message}`);
+        skipped++;
+      }
+    }
+
+    setUploading(false);
+    setResults({ total: lines.length, created, skipped });
+
+    // Auto-close after 2 seconds
+    setTimeout(() => {
+      onSaved();
+    }, 2000);
+  };
+
+  if (results) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-4xl mb-3">✓</p>
+        <p className="font-display text-lg text-ink-900 mb-2">Import complete!</p>
+        <p className="text-sm text-ink-700">
+          <span className="font-medium text-signal-dim">{results.created}</span> questions added
+          {results.skipped > 0 && (
+            <>
+              {" "}
+              (
+              <span className="font-medium text-amber">{results.skipped}</span> skipped due to errors)
+            </>
+          )}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <ErrorBanner message={error} />
+      <div>
+        <label className="text-sm font-medium text-ink-800 block mb-1.5">Questions</label>
+        <p className="text-xs text-ink-600 mb-2">
+          Paste your questions below, one per line. They'll all be assigned to the selected category.
+        </p>
+        <textarea
+          className="w-full border border-black/10 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-signal focus:border-signal outline-none min-h-[200px] font-mono text-xs"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={`Example:\nTell me about a time you resolved a conflict\nHow do you approach learning new technologies?\nDescribe your experience with large-scale systems`}
+          autoFocus
+        />
+      </div>
+      <div>
+        <label className="text-sm font-medium text-ink-800 block mb-1.5">Category</label>
+        <select
+          className="w-full border border-black/10 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-signal focus:border-signal outline-none bg-white"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex justify-end gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-sm font-medium text-ink-700 hover:text-ink-900"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={uploading}
+          className="px-4 py-2 text-sm font-medium bg-ink-950 text-paper rounded-lg hover:bg-ink-900 disabled:opacity-60"
+        >
+          {uploading ? "Importing…" : "Import questions"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+//To add questions
 function QuestionForm({ initial, onCancel, onSaved }) {
   const [text, setText] = useState(initial?.text || "");
-  const [category, setCategory] = useState(initial?.category || "General");
+  const [category, setCategory] = useState(initial?.category || "NLP");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -40,9 +161,9 @@ function QuestionForm({ initial, onCancel, onSaved }) {
     setError("");
     try {
       if (initial) {
-        await updateQuestion(initial.id, { text, category: category || "General" });
+        await updateQuestion(initial.id, { text, category: category || "NLP" });
       } else {
-        await createQuestion({ text, category: category || "General" });
+        await createQuestion({ text, category: category || "NLP" });
       }
       onSaved();
     } catch (err) {
@@ -67,12 +188,16 @@ function QuestionForm({ initial, onCancel, onSaved }) {
       </div>
       <div>
         <label className="text-sm font-medium text-ink-800 block mb-1.5">Category</label>
-        <input
+        <select
           className="w-full border border-black/10 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-signal focus:border-signal outline-none"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          placeholder="e.g. Behavioral, Technical, System Design"
-        />
+        >
+          <option value="NLP">NLP</option>
+          <option value="LLM">LLM</option>
+          <option value="DL">DL</option>
+          <option value="ML">ML</option>
+        </select>
       </div>
       <div className="flex justify-end gap-3 pt-2">
         <button
@@ -155,12 +280,21 @@ export default function Questions() {
           <p className="eyebrow text-signal-dim">Question bank</p>
           <h1 className="font-display text-3xl text-ink-900 mt-1">Your questions</h1>
         </div>
-        <button
-          onClick={() => setModalMode("create")}
-          className="px-4 py-2.5 text-sm font-medium bg-ink-950 text-paper rounded-lg hover:bg-ink-900 self-start"
-        >
-          + Add question
-        </button>
+        <div className="flex gap-2 self-start">
+          <button
+            onClick={() => setModalMode("create")}
+            className="px-4 py-2.5 text-sm font-medium bg-ink-950 text-paper rounded-lg hover:bg-ink-900 self-start"
+          >
+            + Add question
+          </button>
+          <button
+            type="button"
+            onClick={() => setModalMode("bulk")}
+            className="px-4 py-2.5 text-sm font-medium border border-black/10 text-ink-700 rounded-lg hover:bg-paper"
+          >
+            ⬆ Bulk import
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -247,14 +381,30 @@ export default function Questions() {
 
       {modalMode && (
         <Modal
-          title={modalMode === "create" ? "Add a question" : "Edit question"}
+          title={
+            modalMode === "create"
+              ? "Add a question"
+              : modalMode === "bulk"
+                ? "Bulk import questions"
+                : "Edit question"
+          }
           onClose={() => setModalMode(null)}
         >
-          <QuestionForm
-            initial={modalMode === "create" ? null : modalMode}
-            onCancel={() => setModalMode(null)}
-            onSaved={() => handleSaved(modalMode === "create" ? "Question added." : "Question updated.")}
-          />
+          {modalMode === "bulk" ? (
+            <BulkUploadForm
+              onCancel={() => setModalMode(null)}
+              onSaved={() => {
+                setModalMode(null);
+                load();
+              }}
+            />
+          ) : (
+            <QuestionForm
+              initial={modalMode === "create" ? null : modalMode}
+              onCancel={() => setModalMode(null)}
+              onSaved={() => handleSaved(modalMode === "create" ? "Question added." : "Question updated.")}
+            />
+          )}
         </Modal>
       )}
 
