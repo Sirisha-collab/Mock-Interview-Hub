@@ -29,10 +29,11 @@ function categoryColor(category) {
 //Bulk Upload
 function BulkUploadForm({ onCancel, onSaved }) {
   const [text, setText] = useState("");
-  const [category, setCategory] = useState(categories[0]);
+  const [category, setCategory] = useState(categories[0]);  //for dropdown category
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [results, setResults] = useState(null); // { total, created, skipped }
+  const [difficulty, setDifficulty] = useState("Easy");
 
   const submit = async (e) => {
     e.preventDefault();
@@ -58,7 +59,7 @@ function BulkUploadForm({ onCancel, onSaved }) {
 
     for (const questionText of lines) {
       try {
-        await createQuestion({ text: questionText, category });
+        await createQuestion({ text: questionText, category, difficulty });
         created++;
       } catch (err) {
         console.error(`Failed to create question: ${err.message}`);
@@ -148,6 +149,9 @@ function BulkUploadForm({ onCancel, onSaved }) {
 function QuestionForm({ initial, onCancel, onSaved }) {
   const [text, setText] = useState(initial?.text || "");
   const [category, setCategory] = useState(initial?.category || "NLP");
+  const [difficulty, setDifficulty] = useState(
+    initial?.difficulty || "Easy"
+  );   //added for difficulty level
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -161,9 +165,9 @@ function QuestionForm({ initial, onCancel, onSaved }) {
     setError("");
     try {
       if (initial) {
-        await updateQuestion(initial.id, { text, category: category || "NLP" });
+        await updateQuestion(initial.id, { text, category: category || "NLP", difficulty });
       } else {
-        await createQuestion({ text, category: category || "NLP" });
+        await createQuestion({ text, category: category || "NLP", difficulty });
       }
       onSaved();
     } catch (err) {
@@ -197,6 +201,21 @@ function QuestionForm({ initial, onCancel, onSaved }) {
           <option value="LLM">LLM</option>
           <option value="DL">DL</option>
           <option value="ML">ML</option>
+        </select>
+      </div>
+      <div>
+        <label className="text-sm font-medium text-ink-800 block mb-1.5">
+          Difficulty
+        </label>
+
+        <select
+          className="w-full border border-black/10 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-signal focus:border-signal outline-none bg-white"
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value)}
+        >
+          <option value="Easy">Easy</option>
+          <option value="Medium">Medium</option>
+          <option value="Hard">Hard</option>
         </select>
       </div>
       <div className="flex justify-end gap-3 pt-2">
