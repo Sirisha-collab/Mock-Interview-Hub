@@ -15,8 +15,11 @@ A fully offline Interview Practice Application:
 2. Practice sessions that pick a random question at a time with **Skip**
    and **Next** controls.
 3. Record and see it transcribed by Vosk immediately.
-4. A Review page to read back everything you've answered or skipped.
-5. A Statistics dashboard: total/answered/skipped/unanswered questions
+4. Review page to read back everything you've answered or skipped.
+5. Statistics dashboard: total/answered/skipped/unanswered questions
+6. Difficulty Levels: Added Easy, Medium, and Hard difficulty classification for questions.
+7. Bulk Question Import: Implemented bulk question insertion to upload multiple questions in a single operation.
+8. Question Categories: Added category support with a dropdown for easy filtering and organization.
 ---
 
 ## 1. Prerequisites
