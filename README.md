@@ -113,19 +113,3 @@ npm run dev
 
 DASHBOARD
 <img width="1877" height="872" alt="Screenshot 2026-07-22 163915" src="https://github.com/user-attachments/assets/6b4cc290-6ac6-4244-9129-5f475e1bfdbd" />
-ADD QUESTIONS
-<img width="838" height="667" alt="Screenshot 2026-07-22 163925" src="https://github.com/user-attachments/assets/87d69d7e-9cf8-4369-ad00-08eb7bd57f1f" />
-
-## 7. Troubleshooting
-
-| Problem | Likely cause / fix |
-|---|---|
-| "Could not reach the backend" banner in the UI | The FastAPI server isn't running, or is running on a different port. Confirm `uvicorn` is active on port 8000. |
-| Microphone button shows a permissions error | Your browser blocked microphone access for `localhost`. Check the site permissions icon in the address bar and allow the microphone, then reload. |
-| Transcription fails with a "Vosk model not found" style error | The `backend/vosk-model` folder is missing or misnamed. Revisit Step 4. |
-| Transcription fails mentioning ffmpeg | ffmpeg isn't installed or isn't on your PATH. Revisit the Prerequisites section, then restart the backend terminal so it picks up the updated PATH. |
-| Transcript comes back empty | Vosk didn't detect speech in the recording — try speaking closer to the mic, check your input device, or try a longer/clearer answer. |
-| CORS errors in the browser console | You're running the frontend on a port other than 5173. Either use the default port, or add your dev URL to the `allow_origins` list in `backend/app/main.py`. |
-| Port 8000 or 5173 already in use | Stop whatever else is using that port, or run `uvicorn app.main:app --reload --port 8001` (and update `API_BASE_URL` in `frontend/src/api/client.js` to match). |
-
-  you start the server.
