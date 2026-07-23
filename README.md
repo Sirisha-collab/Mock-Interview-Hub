@@ -109,7 +109,14 @@ npm run dev
 ```
 ---
 
-## 6. Troubleshooting
+## 6. Screenshots
+
+DASHBOARD
+<img width="1877" height="872" alt="Screenshot 2026-07-22 163915" src="https://github.com/user-attachments/assets/6b4cc290-6ac6-4244-9129-5f475e1bfdbd" />
+ADD QUESTIONS
+<img width="838" height="667" alt="Screenshot 2026-07-22 163925" src="https://github.com/user-attachments/assets/87d69d7e-9cf8-4369-ad00-08eb7bd57f1f" />
+
+## 7. Troubleshooting
 
 | Problem | Likely cause / fix |
 |---|---|
