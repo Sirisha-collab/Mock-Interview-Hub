@@ -33,6 +33,12 @@ export default function Practice() {
   const timerRef = useRef(null);
   const streamRef = useRef(null);
 
+  //to count words
+  const wordCount =
+    transcript?.trim()
+      ? transcript.trim().split(/\s+/).length
+      : 0;
+
   const loadNext = async () => {
     setLoading(true);
     setError("");
@@ -201,6 +207,18 @@ export default function Practice() {
     return `${m}:${s}`;
   };
 
+  //for Progress bar
+  // Progress bar
+  const completed = current
+    ? current.total_questions - current.remaining_in_cycle
+    : 0;
+
+  const progress =
+    current && current.total_questions > 0
+      ? (completed / current.total_questions) * 100
+      : 0;
+
+
   return (
     <div>
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
@@ -235,6 +253,20 @@ export default function Practice() {
               <span className="eyebrow text-ink-600">
                 {current.total_questions - current.remaining_in_cycle} of {current.total_questions} this cycle
               </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-signal h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+
+              <p className="text-xs text-ink-500 mt-1 text-right">
+                {Math.round(progress)}% Complete
+              </p>
             </div>
 
             <p className="font-display text-2xl md:text-3xl text-ink-900 leading-snug flex-1">
@@ -311,6 +343,11 @@ export default function Practice() {
               <div className="mt-6 w-full text-left bg-paper rounded-lg p-4 border border-black/5">
                 <p className="eyebrow text-signal-dim mb-2">Transcript</p>
                 <p className="text-sm text-ink-900 leading-relaxed">{transcript}</p>
+
+                {/* Ciunt of words */}
+                <div className="mt-3 pt-3 border-t border-black/10 flex justify-between text-xs text-ink-600">
+                  <span>Words: <strong>{wordCount}</strong></span>
+                </div>
               </div>
             )}
             {transcript === "" && micStatus === "idle" && current && (
