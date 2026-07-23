@@ -50,6 +50,50 @@ export default function Practice() {
     }
   };
 
+  // for keyboard keys
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+
+      // Ignore if user is typing
+      const tag = e.target.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        e.target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Prevent repeated firing when key is held
+      if (e.repeat) return;
+
+      // R -> Start recording
+      if (
+        e.key.toLowerCase() === "r" &&
+        micStatus !== "recording" &&
+        micStatus !== "processing"
+      ) {
+        e.preventDefault();
+        startRecording();
+      }
+
+      // Space or Enter -> Stop recording
+      if (
+        micStatus === "recording" &&
+        (e.code === "Space" || e.key === "Enter")
+      ) {
+        e.preventDefault();
+        stopRecording();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [micStatus]);
+
   useEffect(() => {
     loadNext();
     return () => {
@@ -240,6 +284,13 @@ export default function Practice() {
                 : micStatus === "processing"
                   ? "Transcribing…"
                   : "Tap to record"}
+            </p>
+
+            {/* Keyboard shortcuts */}
+            <p className="text-xs text-ink-500 mt-2">
+              Press <kbd className="px-1 py-0.5 border rounded">R</kbd> to record •{" "}
+              <kbd className="px-1 py-0.5 border rounded">Space</kbd> or{" "}
+              <kbd className="px-1 py-0.5 border rounded">Enter</kbd> to stop
             </p>
 
             {micStatus === "recording" && (
