@@ -106,7 +106,6 @@ export default function Dashboard() {
             <div className="grid md:grid-cols-3 gap-4">
               <Link to="/practice">
                 <Card className="p-6 hover:-translate-y-0.5 transition-transform h-full">
-                  <p className="text-2xl mb-2">●</p>
                   <p className="font-display text-lg text-ink-900">Start practicing</p>
                   <p className="text-sm text-ink-600 mt-1">
                     Jump into a randomized round of questions.
@@ -115,7 +114,6 @@ export default function Dashboard() {
               </Link>
               <Link to="/questions">
                 <Card className="p-6 hover:-translate-y-0.5 transition-transform h-full">
-                  <p className="text-2xl mb-2">☰</p>
                   <p className="font-display text-lg text-ink-900">Manage questions</p>
                   <p className="text-sm text-ink-600 mt-1">
                     Add, edit, or organize your question bank.
@@ -124,7 +122,6 @@ export default function Dashboard() {
               </Link>
               <Link to="/review">
                 <Card className="p-6 hover:-translate-y-0.5 transition-transform h-full">
-                  <p className="text-2xl mb-2">▤</p>
                   <p className="font-display text-lg text-ink-900">Review answers</p>
                   <p className="text-sm text-ink-600 mt-1">
                     Read back what you said in past sessions.
