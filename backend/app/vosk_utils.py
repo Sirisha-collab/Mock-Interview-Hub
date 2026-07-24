@@ -4,52 +4,45 @@ import os
 import wave
 import tempfile
 from vosk import Model, KaldiRecognizer
+from dotenv import load_dotenv
 from pydub import AudioSegment
 
-VOSK_MODEL_PATH = r"D:\Docs Latest\A Masters Required doc\Projects\InterviewPractise\backend\vosk-model"
+load_dotenv()
+
+VOSK_MODEL_PATH = os.getenv("VOSK_MODEL_PATH")
 print(f"VOSK_MODEL_PATH: {VOSK_MODEL_PATH}")
 
 _model: Model | None = None
 
-VOSK_MODEL_PATH = os.environ.get(
-    "VOSK_MODEL_PATH",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vosk-model"),
-)
-
-
 class VoskModelNotFoundError(Exception):
     pass
+
 
 def load_model():
     global _model
 
-    _model = Model(
-        r"D:\Docs Latest\A Masters Required doc\Projects\InterviewPractise\backend\vosk-model\vosk-model-small-en-us-0.15"
-    )
+    if _model is not None:
+        return _model
+
+    if not VOSK_MODEL_PATH:
+        raise VoskModelNotFoundError(
+            "VOSK_MODEL_PATH is not set in environment variables"
+        )
+
+    if not os.path.exists(VOSK_MODEL_PATH):
+        raise VoskModelNotFoundError(
+            f"Vosk model not found at: {VOSK_MODEL_PATH}"
+        )
+
+    _model = Model(VOSK_MODEL_PATH)
+
     return _model
-
-# def load_model() -> Model:
-#     global _model
-#     if _model is not None:
-#         return _model
-
-#     if not os.path.isdir(VOSK_MODEL_PATH):
-#         raise VoskModelNotFoundError(
-#             f"Vosk model folder not found at '{VOSK_MODEL_PATH}'. "
-#             "Download a model (e.g. vosk-model-small-en-us-0.15) from "
-#             "https://alphacephei.com/vosk/models, unzip it, and place it at "
-#             "this path (or set the VOSK_MODEL_PATH environment variable)."
-#         )
-
-#     _model = Model(VOSK_MODEL_PATH)
-#     return _model
 
 
 def get_model() -> Model:
     if _model is None:
         return load_model()
     return _model
-
 
 def _convert_to_wav(input_path: str) -> str:
 
