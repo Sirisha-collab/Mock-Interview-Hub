@@ -5,7 +5,6 @@ import Questions from "./pages/Questions.jsx";
 import Practice from "./pages/Practice.jsx";
 import Review from "./pages/Review.jsx";
 import Statistics from "./pages/Statistics.jsx";
-import Retry from "./pages/Retry.jsx";
 
 export default function App() {
   return (
@@ -19,7 +18,6 @@ export default function App() {
             <Route path="/practice" element={<Practice />} />
             <Route path="/review" element={<Review />} />
             <Route path="/statistics" element={<Statistics />} />
-            <Route path="/retry" element={<Retry />} />
           </Routes>
         </div>
       </main>

@@ -4,6 +4,13 @@ import Badge, { statusBadge } from "../components/Badge.jsx";
 import { ErrorBanner, LoadingState, EmptyState, Toast } from "../components/Feedback.jsx";
 import { getReviewItems, deleteReviewItem, getCategories } from "../api/client.js";
 
+const STATUS_OPTIONS = [
+  { value: "", label: "All statuses" },
+  { value: "answered", label: "Answered" },
+  { value: "skipped", label: "Skipped" },
+  { value: "shown", label: "Shown, not resolved" },
+];
+
 function formatDate(iso) {
   const date = new Date(iso);
   return date.toLocaleString(undefined, {
@@ -28,7 +35,7 @@ export default function Review() {
     setError("");
     try {
       const [reviewItems, cats] = await Promise.all([
-        getReviewItems({ status: "answered", category: category || undefined }),
+        getReviewItems({ status: status || undefined, category: category || undefined }),
         getCategories(),
       ]);
       setItems(reviewItems);
@@ -43,7 +50,7 @@ export default function Review() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category]);
+  }, [status, category]);
 
   const handleDelete = async (logId) => {
     try {
@@ -63,6 +70,17 @@ export default function Review() {
       </header>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="border border-black/10 rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-signal focus:border-signal outline-none"
+        >
+          {STATUS_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
@@ -84,8 +102,8 @@ export default function Review() {
       ) : items.length === 0 ? (
         <Card>
           <EmptyState
-            title="No answered questions yet"
-            subtitle="Complete some practice questions and your answers will appear here."
+            title="Nothing to review yet"
+            subtitle="Practice a few questions and your answered and skipped questions will show up here."
           />
         </Card>
       ) : (
