@@ -1,11 +1,3 @@
-/**
- * client.js
- * ---------
- * Central place for every HTTP call the frontend makes to the FastAPI
- * backend. Keeping all requests here means components stay focused on
- * rendering, and the API base URL only needs to be changed in one place.
- */
-
 import axios from "axios";
 
 export const API_BASE_URL = "http://localhost:8000";
@@ -89,3 +81,63 @@ export const getStatistics = () => request(client.get("/api/stats"));
 // ---------- Health ----------
 
 export const checkHealth = () => request(client.get("/api/health"));
+
+//Get retry questions
+
+function retryError(err, fallback) {
+  return new Error(err?.response?.data?.detail || fallback);
+}
+
+export async function listRetryQuestions() {
+  try {
+    const res = await client.get("/api/retry");
+    return res.data;
+  } catch (err) {
+    throw retryError(err, "Could not load your revision list.");
+  }
+}
+
+export async function getRetryIds() {
+  try {
+    const res = await client.get("/api/retry/ids");
+    return res.data;
+  } catch (err) {
+    throw retryError(err, "Could not load your revision list.");
+  }
+}
+
+export async function markForRetry(questionId, reason = null) {
+  try {
+    const res = await client.post(`/api/retry/${questionId}`, { reason });
+    return res.data;
+  } catch (err) {
+    throw retryError(err, "Could not save that question for revision.");
+  }
+}
+
+export async function unmarkRetry(questionId) {
+  try {
+    const res = await client.delete(`/api/retry/${questionId}`);
+    return res.data;
+  } catch (err) {
+    throw retryError(err, "Could not remove that question from revision.");
+  }
+}
+
+export async function clearRetryPool() {
+  try {
+    const res = await client.delete("/api/retry");
+    return res.data;
+  } catch (err) {
+    throw retryError(err, "Could not clear your revision list.");
+  }
+}
+
+export async function startRetryAttempt(questionId) {
+  try {
+    const res = await client.post(`/api/retry/${questionId}/attempt`);
+    return res.data;
+  } catch (err) {
+    throw retryError(err, "Could not start that revision question.");
+  }
+}

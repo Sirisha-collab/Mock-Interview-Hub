@@ -22,6 +22,10 @@ class Question(Base):
         "PracticeLog", back_populates="question", cascade="all, delete-orphan"
     )
 
+    retries = relationship(
+        "RetryQuestion", back_populates="question", cascade="all, delete-orphan"
+    )
+
 
 class PracticeLog(Base):
     __tablename__ = "practice_logs"
@@ -45,3 +49,20 @@ class SessionState(Base):
     remaining_ids = Column(Text, nullable=False, default="")
     current_question_id = Column(Integer, nullable=True)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class RetryQuestion(Base):
+    __tablename__ = "retry_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    question_id = Column(
+        Integer,
+        ForeignKey("questions.id"),
+        nullable=False,
+        unique=True,   # a question is either in the pool or it isn't
+        index=True,
+    )
+    reason = Column(Text, nullable=True)     # optional note to yourself
+    created_at = Column(DateTime, default=utcnow)
+
+    question = relationship("Question", back_populates="retries")

@@ -1,22 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "../components/Card.jsx";
 import Badge from "../components/Badge.jsx";
 import { ErrorBanner, LoadingState } from "../components/Feedback.jsx";
+import AnswerRecorder from "../components/AnswerRecorder.jsx";
+
 import {
   getNextQuestion,
   skipQuestion,
   resetPracticeCycle,
-  transcribeAnswer,
+  markForRetry,
+  unmarkRetry,
+  getRetryIds,
 } from "../api/client.js";
-
-// Picks the best audio mime type the current browser's MediaRecorder supports.
-function pickMimeType() {
-  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg", "audio/mp4"];
-  for (const type of candidates) {
-    if (window.MediaRecorder && MediaRecorder.isTypeSupported(type)) return type;
-  }
-  return "";
-}
+import { Link } from "react-router-dom";
 
 export default function Practice() {
   const [current, setCurrent] = useState(null); // { log_id, question, remaining_in_cycle, total_questions }
@@ -24,20 +20,24 @@ export default function Practice() {
   const [error, setError] = useState("");
 
   const [micStatus, setMicStatus] = useState("idle"); // idle | recording | processing
-  const [micError, setMicError] = useState("");
-  const [transcript, setTranscript] = useState("");
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [retryIds, setRetryIds] = useState([]);
+  const [retryBusy, setRetryBusy] = useState(false);
 
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
-  const timerRef = useRef(null);
-  const streamRef = useRef(null);
+  const busy = micStatus === "recording" || micStatus === "processing";
+  const inRetryPool = current ? retryIds.includes(current.question.id) : false;
+
+  const loadRetryIds = async () => {
+    try {
+      const data = await getRetryIds();
+      setRetryIds(data.ids || []);
+    } catch {
+      // The retry pool is a nice-to-have on this page — never block practice on it.
+    }
+  };
 
   const loadNext = async () => {
     setLoading(true);
     setError("");
-    setTranscript("");
-    setMicError("");
     setMicStatus("idle");
     try {
       const data = await getNextQuestion();
@@ -52,64 +52,9 @@ export default function Practice() {
 
   useEffect(() => {
     loadNext();
-    return () => {
-      clearInterval(timerRef.current);
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    };
+    loadRetryIds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const startRecording = async () => {
-    setMicError("");
-    setTranscript("");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const mimeType = pickMimeType();
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-      chunksRef.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      recorder.onstop = async () => {
-        clearInterval(timerRef.current);
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: mimeType || "audio/webm" });
-        await sendForTranscription(blob);
-      };
-
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setMicStatus("recording");
-      setElapsedSeconds(0);
-      timerRef.current = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
-    } catch (e) {
-      setMicError(
-        "Could not access your microphone. Please check your browser's microphone permissions and try again."
-      );
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-      setMicStatus("processing");
-    }
-  };
-
-  const sendForTranscription = async (blob) => {
-    if (!current) return;
-    try {
-      const result = await transcribeAnswer(current.log_id, blob);
-      setTranscript(result.transcript);
-      setMicStatus("idle");
-    } catch (e) {
-      setMicError(e.message);
-      setMicStatus("idle");
-    }
-  };
 
   const handleSkip = async () => {
     if (!current) return;
@@ -134,13 +79,37 @@ export default function Practice() {
     loadNext();
   };
 
-  const formatTime = (secs) => {
-    const m = Math.floor(secs / 60)
-      .toString()
-      .padStart(2, "0");
-    const s = (secs % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
+  // "I couldn't answer this" — park it in the revision pool and move on.
+  const handleSaveForRetry = async ({ advance }) => {
+    if (!current || retryBusy) return;
+    setRetryBusy(true);
+    const questionId = current.question.id;
+    try {
+      if (inRetryPool) {
+        await unmarkRetry(questionId);
+        setRetryIds((ids) => ids.filter((id) => id !== questionId));
+      } else {
+        await markForRetry(questionId);
+        setRetryIds((ids) => [...ids, questionId]);
+        if (advance) {
+          await skipQuestion(current.log_id).catch(() => { });
+          setRetryBusy(false);
+          loadNext();
+          return;
+        }
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+    setRetryBusy(false);
   };
+
+  // Progress bar
+  const completed = current ? current.total_questions - current.remaining_in_cycle : 0;
+  const progress =
+    current && current.total_questions > 0
+      ? (completed / current.total_questions) * 100
+      : 0;
 
   return (
     <div>
@@ -149,12 +118,22 @@ export default function Practice() {
           <p className="eyebrow text-signal-dim">Practice session</p>
           <h1 className="font-display text-3xl text-ink-900 mt-1">On the record</h1>
         </div>
-        <button
-          onClick={handleReset}
-          className="text-sm font-medium text-ink-600 hover:text-ink-900 self-start"
-        >
-          ↺ Reset practice cycle
-        </button>
+        <div className="flex items-center gap-4 self-start">
+          {retryIds.length > 0 && (
+            <Link
+              to="/retry"
+              className="text-sm text-ink-600 hover:text-ink-900 underline underline-offset-4"
+            >
+              {retryIds.length} saved for revision
+            </Link>
+          )}
+          <button
+            onClick={handleReset}
+            className="text-sm font-medium text-ink-600 hover:text-ink-900"
+          >
+            ↺ Reset practice cycle
+          </button>
+        </div>
       </header>
 
       <ErrorBanner message={error} onRetry={loadNext} />
@@ -172,10 +151,26 @@ export default function Practice() {
         <div className="grid md:grid-cols-3 gap-5">
           <Card className="p-7 md:col-span-2 flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <Badge tone="neutral">{current.question.category}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge tone="neutral">{current.question.category}</Badge>
+                {inRetryPool && <Badge tone="neutral">Saved for revision</Badge>}
+              </div>
               <span className="eyebrow text-ink-600">
-                {current.total_questions - current.remaining_in_cycle} of {current.total_questions} this cycle
+                {completed} of {current.total_questions} this cycle
               </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-signal h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-xs text-ink-500 mt-1 text-right">
+                {Math.round(progress)}% Complete
+              </p>
             </div>
 
             <p className="font-display text-2xl md:text-3xl text-ink-900 leading-snug flex-1">
@@ -185,74 +180,43 @@ export default function Practice() {
             <div className="flex flex-wrap gap-3 mt-8">
               <button
                 onClick={handleSkip}
-                disabled={micStatus === "recording" || micStatus === "processing"}
+                disabled={busy}
                 className="px-4 py-2.5 text-sm font-medium border border-black/10 rounded-lg text-ink-700 hover:bg-paper disabled:opacity-50"
               >
                 Skip question
               </button>
               <button
                 onClick={handleNext}
-                disabled={micStatus === "recording" || micStatus === "processing"}
+                disabled={busy}
                 className="px-4 py-2.5 text-sm font-medium bg-ink-950 text-paper rounded-lg hover:bg-ink-900 disabled:opacity-50"
               >
                 Next question →
+              </button>
+
+              {/* The retry control: park this question and carry on. */}
+              <button
+                onClick={() => handleSaveForRetry({ advance: !inRetryPool })}
+                disabled={busy || retryBusy}
+                className={`px-4 py-2.5 text-sm font-medium rounded-lg border disabled:opacity-50 ${inRetryPool
+                  ? "border-rose/40 text-rose hover:bg-rose/5"
+                  : "border-black/10 text-ink-700 hover:bg-paper"
+                  }`}
+                title={
+                  inRetryPool
+                    ? "Take this question out of the revision list"
+                    : "Save this question to revise on its own later"
+                }
+              >
+                {inRetryPool ? "✕ Remove from revision" : "⟳ Couldn't answer — save for retry"}
               </button>
             </div>
           </Card>
 
           <Card className="p-7 flex flex-col items-center justify-center text-center">
-            <p className="eyebrow text-ink-600 mb-5">Record your answer</p>
-
-            <button
-              onClick={micStatus === "recording" ? stopRecording : startRecording}
-              disabled={micStatus === "processing"}
-              className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-colors ${
-                micStatus === "recording"
-                  ? "bg-rose text-white recording-pulse"
-                  : "bg-signal text-ink-950 hover:bg-signal-dim"
-              } disabled:opacity-60`}
-              aria-label={micStatus === "recording" ? "Stop recording" : "Start recording"}
-            >
-              {micStatus === "recording" ? (
-                <span className="w-5 h-5 bg-white rounded-sm" />
-              ) : (
-                <span className="text-2xl">●</span>
-              )}
-            </button>
-
-            <p className="text-sm text-ink-600 mt-4 font-mono">
-              {micStatus === "recording"
-                ? formatTime(elapsedSeconds)
-                : micStatus === "processing"
-                ? "Transcribing…"
-                : "Tap to record"}
-            </p>
-
-            {micStatus === "recording" && (
-              <div className="flex items-end gap-1 h-6 mt-3" aria-hidden="true">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <span
-                    key={i}
-                    className="mic-bar w-1.5 bg-rose rounded-full h-full"
-                    style={{ animationDelay: `${i * 0.12}s` }}
-                  />
-                ))}
-              </div>
-            )}
-
-            {micError && <p className="text-xs text-rose mt-4">{micError}</p>}
-
-            {transcript !== "" && (
-              <div className="mt-6 w-full text-left bg-paper rounded-lg p-4 border border-black/5">
-                <p className="eyebrow text-signal-dim mb-2">Transcript</p>
-                <p className="text-sm text-ink-900 leading-relaxed">{transcript}</p>
-              </div>
-            )}
-            {transcript === "" && micStatus === "idle" && current && (
-              <p className="text-xs text-ink-600 mt-6">
-                Your transcribed answer will appear here after recording.
-              </p>
-            )}
+            <AnswerRecorder
+              logId={current.log_id}
+              onStatusChange={setMicStatus}
+            />
           </Card>
         </div>
       )}

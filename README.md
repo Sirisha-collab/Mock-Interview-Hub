@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Mock-Interview-Hub
 Every great career begins with a confident conversation. Practice interviews with an AI coach that helps you think clearly, answer confidently, and grow with every session.
 =======
@@ -235,4 +235,4 @@ ever need to change that).
 - To reset the app completely, stop the backend and delete
   `backend/interview_practice.db`; a fresh one will be created the next time
   you start the server.
->>>>>>> dbb6c6d (Initial commit)
+

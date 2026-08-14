@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .database import Base, engine
-from .routers import questions, practice, transcribe, review, stats
+from .routers import questions, practice, transcribe, review, stats, retry
 from .vosk_utils import load_model, VoskModelNotFoundError
 
 logging.basicConfig(level=logging.INFO)
@@ -68,6 +68,7 @@ app.include_router(practice.router)
 app.include_router(transcribe.router)
 app.include_router(review.router)
 app.include_router(stats.router)
+app.include_router(retry.router)
 
 
 @app.get("/api/health", tags=["Health"])
