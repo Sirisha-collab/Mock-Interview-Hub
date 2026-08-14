@@ -33,6 +33,12 @@ export default function Practice() {
   const timerRef = useRef(null);
   const streamRef = useRef(null);
 
+  //to count words
+  const wordCount =
+    transcript?.trim()
+      ? transcript.trim().split(/\s+/).length
+      : 0;
+
   const loadNext = async () => {
     setLoading(true);
     setError("");
@@ -50,6 +56,50 @@ export default function Practice() {
     }
   };
 
+  // for keyboard keys
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+
+      // Ignore if user is typing
+      const tag = e.target.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        e.target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Prevent repeated firing when key is held
+      if (e.repeat) return;
+
+      // R -> Start recording
+      if (
+        e.key.toLowerCase() === "r" &&
+        micStatus !== "recording" &&
+        micStatus !== "processing"
+      ) {
+        e.preventDefault();
+        startRecording();
+      }
+
+      // Space or Enter -> Stop recording
+      if (
+        micStatus === "recording" &&
+        (e.code === "Space" || e.key === "Enter")
+      ) {
+        e.preventDefault();
+        stopRecording();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [micStatus]);
+
   useEffect(() => {
     loadNext();
     return () => {
@@ -63,10 +113,25 @@ export default function Practice() {
     setMicError("");
     setTranscript("");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Improving Audio to text conversion
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
       streamRef.current = stream;
       const mimeType = pickMimeType();
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+
+      //Adding audioBitsPerSecond for better audio quality
+      const recorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType, audioBitsPerSecond: 128000 } : undefined
+      );
       chunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
@@ -142,6 +207,18 @@ export default function Practice() {
     return `${m}:${s}`;
   };
 
+  //for Progress bar
+  // Progress bar
+  const completed = current
+    ? current.total_questions - current.remaining_in_cycle
+    : 0;
+
+  const progress =
+    current && current.total_questions > 0
+      ? (completed / current.total_questions) * 100
+      : 0;
+
+
   return (
     <div>
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
@@ -178,6 +255,20 @@ export default function Practice() {
               </span>
             </div>
 
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-signal h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+
+              <p className="text-xs text-ink-500 mt-1 text-right">
+                {Math.round(progress)}% Complete
+              </p>
+            </div>
+
             <p className="font-display text-2xl md:text-3xl text-ink-900 leading-snug flex-1">
               {current.question.text}
             </p>
@@ -206,11 +297,10 @@ export default function Practice() {
             <button
               onClick={micStatus === "recording" ? stopRecording : startRecording}
               disabled={micStatus === "processing"}
-              className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-colors ${
-                micStatus === "recording"
-                  ? "bg-rose text-white recording-pulse"
-                  : "bg-signal text-ink-950 hover:bg-signal-dim"
-              } disabled:opacity-60`}
+              className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-colors ${micStatus === "recording"
+                ? "bg-rose text-white recording-pulse"
+                : "bg-signal text-ink-950 hover:bg-signal-dim"
+                } disabled:opacity-60`}
               aria-label={micStatus === "recording" ? "Stop recording" : "Start recording"}
             >
               {micStatus === "recording" ? (
@@ -224,8 +314,15 @@ export default function Practice() {
               {micStatus === "recording"
                 ? formatTime(elapsedSeconds)
                 : micStatus === "processing"
-                ? "Transcribing…"
-                : "Tap to record"}
+                  ? "Transcribing…"
+                  : "Tap to record"}
+            </p>
+
+            {/* Keyboard shortcuts */}
+            <p className="text-xs text-ink-500 mt-2">
+              Press <kbd className="px-1 py-0.5 border rounded">R</kbd> to record •{" "}
+              <kbd className="px-1 py-0.5 border rounded">Space</kbd> or{" "}
+              <kbd className="px-1 py-0.5 border rounded">Enter</kbd> to stop
             </p>
 
             {micStatus === "recording" && (
@@ -246,6 +343,11 @@ export default function Practice() {
               <div className="mt-6 w-full text-left bg-paper rounded-lg p-4 border border-black/5">
                 <p className="eyebrow text-signal-dim mb-2">Transcript</p>
                 <p className="text-sm text-ink-900 leading-relaxed">{transcript}</p>
+
+                {/* Ciunt of words */}
+                <div className="mt-3 pt-3 border-t border-black/10 flex justify-between text-xs text-ink-600">
+                  <span>Words: <strong>{wordCount}</strong></span>
+                </div>
               </div>
             )}
             {transcript === "" && micStatus === "idle" && current && (
