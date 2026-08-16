@@ -35,7 +35,6 @@ def get_statistics(db: Session = Depends(get_db)):
             unanswered_count += 1
 
     # Category breakdown: number of questions and total practice attempts
-    # (answered + skipped logs) per category.
     questions_per_category = defaultdict(int)
     practices_per_category = defaultdict(int)
 
