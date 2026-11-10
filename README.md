@@ -17,32 +17,9 @@ A fully offline Interview Practice Application:
 3. Record and see it transcribed by Vosk immediately.
 4. Review page to read back everything you've answered or skipped.
 5. Statistics dashboard: total/answered/skipped/unanswered questions
-6. Difficulty Levels: Added Easy, Medium, and Hard difficulty classification for questions.
-7. Bulk Question Import: Implemented bulk question insertion to upload multiple questions in a single operation.
-8. Question Categories: Added category support with a dropdown for easy filtering and organization.
 ---
 
-## 1. Prerequisites
-
-Install these once, before anything else:
-
-| Tool | Minimum version | Check with |
-|---|---|---|
-| Python | 3.10+ | `python3 --version` |
-| Node.js | 18+ | `node --version` |
-| npm | 9+ | `npm --version` |
-| ffmpeg | any recent version | `ffmpeg -version` |
-
-**Installing ffmpeg** (required so the backend can convert your recorded
-audio into the format Vosk expects):
-
-- **Windows:** `winget install ffmpeg` (or download from
-  https://www.gyan.dev/ffmpeg/builds/ and add the `bin` folder to your PATH)
-- **macOS:** `brew install ffmpeg`
-- **Linux (Debian/Ubuntu):** `sudo apt install ffmpeg`
----
-
-## 2. Project structure
+## Project structure
 
 ```
 interview-practice-app/
@@ -69,10 +46,9 @@ interview-practice-app/
     ├── package.json
     └── vite.config.js
 ```
-
 ---
 
-## 3. Backend setup (FastAPI)
+## Backend setup (FastAPI)
 
 Open a terminal in VS Code (`` Ctrl+` `` / `` Cmd+` ``) and run:
 
@@ -89,18 +65,11 @@ venv\Scripts\Activate.ps1
 
 # Install dependencies
 pip install -r requirements.txt
-```
----
 
-## 4. Run the backend
-
-From `backend/`, with the virtual environment activated:
-
-```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-## 5. Run the frontend
+## Run the frontend
 
 ```bash
 cd frontend
